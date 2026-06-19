@@ -365,7 +365,7 @@ function applyLangToDOM() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
   document.querySelectorAll('.lang-ru').forEach(el => { el.style.display = lang === 'ru' ? '' : 'none'; });
-  document.querySelectorAll('.lang-en').forEach(el => { el.style.display = lang === 'en' ? '' : 'none'; });
+  document.querySelectorAll('.lang-en').forEach(el => { el.style.display = lang === 'en' ? 'block' : 'none'; });
   document.getElementById('langBtn').textContent = lang === 'ru' ? 'EN' : 'RU';
   document.querySelectorAll('#styleChips .chip[data-s]').forEach(c => { c.textContent = t('style.' + c.dataset.s); });
   document.querySelectorAll('#tplChips .chip[data-tpl]').forEach((c, i) => { c.textContent = t(TEMPLATES[+c.dataset.tpl].nameKey); });
