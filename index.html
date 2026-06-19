@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chord Flow v2 — аранжировщик</title>
+<title>Chord Flow v2</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600&family=Manrope:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
   :root{
@@ -17,9 +17,12 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px}
   header{padding:18px 16px 8px}
+  header .header-row{display:flex;justify-content:space-between;align-items:center}
   header h1{font-family:var(--display);font-weight:600;font-size:22px;margin:0}
   header h1 em{color:var(--coral);font-style:normal}
   header p{margin:4px 0 0;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)}
+  #langBtn{font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;flex-shrink:0;margin-left:12px}
+  #langBtn:hover{border-color:var(--muted);color:var(--ink)}
   .layout{display:flex;flex-wrap:wrap;gap:12px;padding:10px 12px 30px;align-items:flex-start}
   .col-main{flex:1 1 480px;min-width:300px;display:flex;flex-direction:column;gap:12px}
   .col-side{flex:0 1 340px;min-width:290px;display:flex;flex-direction:column;gap:12px}
@@ -80,14 +83,20 @@
   .about strong{color:var(--ink)}
   .mic-warn{margin-top:10px;padding:10px 12px;border-radius:10px;background:#1B1429;border:1px solid #3B2555;font-size:12px;color:#C4B8E0;line-height:1.65}
   .mic-warn b{color:#D4A8FF}
+  .lang-en{display:none}
   @media (max-width:740px){ .col-side{flex:1 1 100%} }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Chord <em>Flow</em> v2</h1>
-  <p>аранжировщик · граф вместо секвенсора</p>
+  <div class="header-row">
+    <div>
+      <h1>Chord <em>Flow</em> v2</h1>
+      <p data-i18n="app.subtitle">аранжировщик · граф вместо секвенсора</p>
+    </div>
+    <button id="langBtn">EN</button>
+  </div>
 </header>
 
 <div class="layout">
@@ -95,7 +104,7 @@
 
     <div class="card">
       <div class="transport">
-        <button id="bPlay" aria-label="Играть">▶</button>
+        <button id="bPlay" aria-label="Play">▶</button>
         <div class="nowbox">
           <div class="chord" id="nowChord">C</div>
           <div class="queue" id="queueInfo"></div>
@@ -108,12 +117,12 @@
     </div>
 
     <div class="card">
-      <h2>Кто ведёт гармонию</h2>
+      <h2 data-i18n="mode.title">Кто ведёт гармонию</h2>
       <div class="chips">
-        <button class="chip mode" data-m="tap">Касание</button>
-        <button class="chip mode" data-m="auto">Автопилот</button>
-        <button class="chip mode" data-m="wander">Блуждание</button>
-        <button class="chip mode" data-m="listen">🎙 Слушатель</button>
+        <button class="chip mode" data-m="tap"    data-i18n="mode.tap">Касание</button>
+        <button class="chip mode" data-m="auto"   data-i18n="mode.auto">Автопилот</button>
+        <button class="chip mode" data-m="wander" data-i18n="mode.wander">Блуждание</button>
+        <button class="chip mode" data-m="listen" data-i18n="mode.listen">🎙 Слушатель</button>
       </div>
       <div class="modestatus" id="modeStatus"></div>
       <div class="micline" id="micLine" style="display:none">
@@ -123,86 +132,98 @@
     </div>
 
     <div class="card">
-      <h2>Граф переходов — касание перебивает любой режим</h2>
+      <h2 data-i18n="graph.title">Граф переходов — касание перебивает любой режим</h2>
       <div class="graph-box"><canvas id="graph"></canvas></div>
       <div class="graph-hint">
-        переход на границе такта ·
-        <span class="fkey" style="background:var(--violet)"></span>тоника
-        <span class="fkey" style="background:var(--teal)"></span>субдоминанта
-        <span class="fkey" style="background:var(--coral)"></span>доминанта
-        <span class="fkey" style="background:var(--gold)"></span>вне тональности
+        <span data-i18n="graph.hint.prefix">переход на границе такта ·</span>
+        <span class="fkey" style="background:var(--violet)"></span><span data-i18n="graph.hint.tonic">тоника</span>
+        <span class="fkey" style="background:var(--teal)"></span><span data-i18n="graph.hint.sub">субдоминанта</span>
+        <span class="fkey" style="background:var(--coral)"></span><span data-i18n="graph.hint.dom">доминанта</span>
+        <span class="fkey" style="background:var(--gold)"></span><span data-i18n="graph.hint.out">вне тональности</span>
       </div>
     </div>
 
     <div class="card">
-      <h2>Клавиши — что играть</h2>
+      <h2 data-i18n="piano.title">Клавиши — что играть</h2>
       <canvas id="piano"></canvas>
-      <div class="piano-hint">закрашено — текущий аккорд · точки сверху — следующий в очереди</div>
+      <div class="piano-hint" data-i18n="piano.hint">закрашено — текущий аккорд · точки сверху — следующий в очереди</div>
     </div>
 
   </div>
   <div class="col-side">
 
     <div class="card about">
-      <h2>About Chord Flow</h2>
-      <p><strong>Chord Flow</strong> is a real-time harmony arranger and chord progression explorer. Pick a key, mode, and musical style, then navigate chord progressions through an interactive graph.</p>
-      <p><strong>Tap</strong> — you choose every chord manually by tapping the graph. <strong>Auto-pilot</strong> — follows a preset progression on loop. <strong>Wander</strong> — drifts harmonically on its own using transition weights. <strong>Mic Listener</strong> — detects chords from your microphone and follows your playing.</p>
-      <div class="mic-warn">
-        <b>🎧 Mic Listener — audio routing</b><br>
-        The microphone listens for chords played on a <em>real instrument</em> (guitar, keys, voice). <strong>Always use headphones</strong> when Mic Listener is active — if the app's speaker output reaches the microphone it will interfere with chord detection. For recording: route the app audio and your instrument to <strong>separate tracks</strong> so they don't bleed into each other.
+      <h2 data-i18n="about.title">О Chord Flow</h2>
+
+      <div class="lang-ru">
+        <p><strong>Chord Flow</strong> — аранжировщик гармонии в реальном времени. Выберите тональность, лад и стиль, затем исследуйте прогрессии через интерактивный граф переходов.</p>
+        <p><strong>Касание</strong> — вы выбираете каждый аккорд вручную. <strong>Автопилот</strong> — следует заданной прогрессии по кругу. <strong>Блуждание</strong> — граф дрейфует сам по весам переходов. <strong>Слушатель</strong> — распознаёт аккорды с микрофона и следует за вами.</p>
+        <div class="mic-warn">
+          <b>🎧 Слушатель — маршрутизация звука</b><br>
+          Микрофон слушает аккорды живого инструмента (гитара, клавиши, голос). <strong>Используйте наушники</strong>, когда Слушатель активен — звук из динамиков не должен попадать в микрофон, иначе распознавание будет нарушено. Для записи: направляйте звук приложения и инструмента на <strong>отдельные дорожки</strong>.
+        </div>
+      </div>
+
+      <div class="lang-en">
+        <p><strong>Chord Flow</strong> is a real-time harmony arranger. Pick a key, mode, and style, then navigate chord progressions through an interactive transition graph.</p>
+        <p><strong>Tap</strong> — choose every chord manually by tapping the graph. <strong>Auto-pilot</strong> — follows a preset progression on loop. <strong>Wander</strong> — drifts harmonically by transition weights. <strong>Listener</strong> — detects chords from your mic and follows your playing.</p>
+        <div class="mic-warn">
+          <b>🎧 Mic Listener — audio routing</b><br>
+          The microphone listens for chords from a real instrument (guitar, keys, voice). <strong>Always use headphones</strong> when Listener is active — speaker output must not reach the mic or it will interfere with chord detection. For recording: route app audio and your instrument to <strong>separate tracks</strong>.
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>Стиль и звучание</h2>
+      <h2 data-i18n="style.title">Стиль и звучание</h2>
       <div class="chips" id="styleChips"></div>
       <div class="ctrl">
-        <label>Энергия <output id="vEnergy">50%</output></label>
+        <label><span data-i18n="style.energy">Энергия</span> <output id="vEnergy">50%</output></label>
         <input type="range" id="rEnergy" min="0" max="100" step="5" value="50">
       </div>
       <div class="ctrl" style="margin-bottom:2px">
-        <label>Инструмент гармонии</label>
+        <label data-i18n="style.instrument">Инструмент гармонии</label>
         <select id="selSound">
-          <option value="piano">Пианино</option>
-          <option value="pad">Пэд</option>
-          <option value="pluck">Щипок</option>
-          <option value="organ">Орган</option>
+          <option value="piano" data-i18n="sound.piano">Пианино</option>
+          <option value="pad"   data-i18n="sound.pad">Пэд</option>
+          <option value="pluck" data-i18n="sound.pluck">Щипок</option>
+          <option value="organ" data-i18n="sound.organ">Орган</option>
         </select>
       </div>
     </div>
 
     <div class="card">
-      <h2>Тональность и характер</h2>
+      <h2 data-i18n="key.title">Тональность и характер</h2>
       <div class="ctrl" style="margin-top:2px">
-        <label>Темп <output id="vBpm">100 bpm</output></label>
+        <label><span data-i18n="key.tempo">Темп</span> <output id="vBpm">100 bpm</output></label>
         <input type="range" id="rBpm" min="50" max="180" step="2" value="100">
       </div>
       <div class="row2">
         <select id="selRoot"></select>
         <select id="selMode">
-          <option value="major">мажор</option>
-          <option value="minor">минор</option>
+          <option value="major" data-i18n="key.major">мажор</option>
+          <option value="minor" data-i18n="key.minor">минор</option>
         </select>
       </div>
       <div class="ctrl">
-        <label>Отклонение от тональности <output id="vVar">20%</output></label>
+        <label><span data-i18n="key.vari">Отклонение от тональности</span> <output id="vVar">20%</output></label>
         <input type="range" id="rVar" min="0" max="100" step="5" value="20">
       </div>
     </div>
 
     <div class="card">
-      <h2>Шаблоны и ИИ</h2>
+      <h2 data-i18n="tpl.title">Шаблоны и ИИ</h2>
       <div class="chips" id="tplChips"></div>
       <hr class="divider">
-      <input type="password" id="apiKey" placeholder="Ключ Google AI Studio" autocomplete="off">
+      <input type="password" id="apiKey" data-i18n-placeholder="tpl.apikey" placeholder="Ключ Google AI Studio" autocomplete="off">
       <div class="hintnote">
-        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Получить бесплатный ключ →</a>
-        · хранится только в этой сессии
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" data-i18n="tpl.apilink">Получить бесплатный ключ →</a>
+        · <span data-i18n="tpl.session">хранится только в этой сессии</span>
       </div>
       <div class="ctrl" style="margin-bottom:8px">
-        <input type="text" id="aiMood" placeholder="Настроение: «ночная поездка по городу»">
+        <input type="text" id="aiMood" data-i18n-placeholder="tpl.mood" placeholder="Настроение: «ночная поездка по городу»">
       </div>
-      <button class="action" id="bAI">Сгенерировать шаблон</button>
+      <button class="action" id="bAI" data-i18n="tpl.generate">Сгенерировать шаблон</button>
       <div class="status" id="aiStatus"></div>
     </div>
 
@@ -212,6 +233,150 @@
 <script>
 (function(){
 'use strict';
+
+/* ================= TRANSLATIONS ================= */
+const TRANSLATIONS = {
+  ru: {
+    'app.subtitle':      'аранжировщик · граф вместо секвенсора',
+    'about.title':       'О Chord Flow',
+    'mode.title':        'Кто ведёт гармонию',
+    'mode.tap':          'Касание',
+    'mode.auto':         'Автопилот',
+    'mode.wander':       'Блуждание',
+    'mode.listen':       '🎙 Слушатель',
+    'graph.title':       'Граф переходов — касание перебивает любой режим',
+    'graph.hint.prefix': 'переход на границе такта ·',
+    'graph.hint.tonic':  'тоника',
+    'graph.hint.sub':    'субдоминанта',
+    'graph.hint.dom':    'доминанта',
+    'graph.hint.out':    'вне тональности',
+    'piano.title':       'Клавиши — что играть',
+    'piano.hint':        'закрашено — текущий аккорд · точки сверху — следующий в очереди',
+    'style.title':       'Стиль и звучание',
+    'style.energy':      'Энергия',
+    'style.instrument':  'Инструмент гармонии',
+    'sound.piano':       'Пианино',
+    'sound.pad':         'Пэд',
+    'sound.pluck':       'Щипок',
+    'sound.organ':       'Орган',
+    'style.ballad':      'Баллада',
+    'style.lofi':        'Лоу-фай',
+    'style.bossa':       'Босса',
+    'style.rock':        'Рок',
+    'style.ambient':     'Эмбиент',
+    'key.title':         'Тональность и характер',
+    'key.tempo':         'Темп',
+    'key.vari':          'Отклонение от тональности',
+    'key.major':         'мажор',
+    'key.minor':         'минор',
+    'tpl.title':         'Шаблоны и ИИ',
+    'tpl.apikey':        'Ключ Google AI Studio',
+    'tpl.apilink':       'Получить бесплатный ключ →',
+    'tpl.session':       'хранится только в этой сессии',
+    'tpl.mood':          'Настроение: «ночная поездка по городу»',
+    'tpl.generate':      'Сгенерировать шаблон',
+    'tpl.pop':           'Поп',
+    'tpl.lyric':         'Лирика',
+    'tpl.lofi':          'Лоу-фай',
+    'tpl.bossa':         'Босса',
+    'tpl.ambient':       'Эмбиент',
+    'hint.tap':          'вы ведёте гармонию: касайтесь аккордов в графе',
+    'hint.auto':         'ведёт шаблон: ',
+    'hint.wander':       'граф блуждает сам по весам переходов — бесконечный фон; касание перебивает',
+    'hint.listen':       'играйте аккорды тональности — я перейду следом на границе такта',
+    'queue.next':        '→ {chord} на следующем такте',
+    'queue.mic':         ' · по слуху',
+    'mic.listening':     'слушаю… распознанный аккорд — слева внизу',
+    'mic.error':         'Микрофон недоступен: {msg}. В предпросмотре Claude доступ запрещён — откройте файл в браузере.',
+    'ai.generating':     'Генерирую…',
+    'ai.nokey':          'Вставьте ключ API (ссылка выше).',
+    'ai.done':           'Готово: «{name}» · {model}',
+    'ai.error':          'Не получилось: {msg}. Если ошибка сети — в предпросмотре Claude внешние запросы заблокированы; откройте файл в браузере.',
+  },
+  en: {
+    'app.subtitle':      'arranger · graph instead of sequencer',
+    'about.title':       'About Chord Flow',
+    'mode.title':        'Who leads the harmony',
+    'mode.tap':          'Tap',
+    'mode.auto':         'Auto-pilot',
+    'mode.wander':       'Wander',
+    'mode.listen':       '🎙 Listener',
+    'graph.title':       'Transition graph — tap overrides any mode',
+    'graph.hint.prefix': 'transition at bar boundary ·',
+    'graph.hint.tonic':  'tonic',
+    'graph.hint.sub':    'subdominant',
+    'graph.hint.dom':    'dominant',
+    'graph.hint.out':    'out of key',
+    'piano.title':       'Keys — what to play',
+    'piano.hint':        'filled — current chord · dots above — next in queue',
+    'style.title':       'Style & Sound',
+    'style.energy':      'Energy',
+    'style.instrument':  'Harmony instrument',
+    'sound.piano':       'Piano',
+    'sound.pad':         'Pad',
+    'sound.pluck':       'Pluck',
+    'sound.organ':       'Organ',
+    'style.ballad':      'Ballad',
+    'style.lofi':        'Lo-fi',
+    'style.bossa':       'Bossa',
+    'style.rock':        'Rock',
+    'style.ambient':     'Ambient',
+    'key.title':         'Key & Character',
+    'key.tempo':         'Tempo',
+    'key.vari':          'Key deviation',
+    'key.major':         'major',
+    'key.minor':         'minor',
+    'tpl.title':         'Templates & AI',
+    'tpl.apikey':        'Google AI Studio key',
+    'tpl.apilink':       'Get a free key →',
+    'tpl.session':       'stored in this session only',
+    'tpl.mood':          'Mood: "night drive through the city"',
+    'tpl.generate':      'Generate template',
+    'tpl.pop':           'Pop',
+    'tpl.lyric':         'Lyric',
+    'tpl.lofi':          'Lo-fi',
+    'tpl.bossa':         'Bossa',
+    'tpl.ambient':       'Ambient',
+    'hint.tap':          'you lead: tap chords on the graph',
+    'hint.auto':         'following template: ',
+    'hint.wander':       'graph drifts by transition weights — infinite background; tap overrides',
+    'hint.listen':       'play chords in your key — I\'ll follow at the next bar',
+    'queue.next':        '→ {chord} at next bar',
+    'queue.mic':         ' · by ear',
+    'mic.listening':     'listening… detected chord shown bottom-left',
+    'mic.error':         'Mic unavailable: {msg}. In Claude preview mic access is blocked — open the file in a browser.',
+    'ai.generating':     'Generating…',
+    'ai.nokey':          'Paste your API key (link above).',
+    'ai.done':           'Done: "{name}" · {model}',
+    'ai.error':          'Failed: {msg}. Network error? In Claude preview external requests are blocked; open in a browser.',
+  }
+};
+
+let lang = localStorage.getItem('cf-lang') || 'ru';
+
+function t(key, vars) {
+  let s = (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.ru[key] || key;
+  if (vars) for (const k in vars) s = s.split('{'+k+'}').join(String(vars[k]));
+  return s;
+}
+
+function applyLangToDOM() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll('.lang-ru').forEach(el => { el.style.display = lang === 'ru' ? '' : 'none'; });
+  document.querySelectorAll('.lang-en').forEach(el => { el.style.display = lang === 'en' ? '' : 'none'; });
+  document.getElementById('langBtn').textContent = lang === 'ru' ? 'EN' : 'RU';
+  document.querySelectorAll('#styleChips .chip[data-s]').forEach(c => { c.textContent = t('style.' + c.dataset.s); });
+  document.querySelectorAll('#tplChips .chip[data-tpl]').forEach((c, i) => { c.textContent = t(TEMPLATES[+c.dataset.tpl].nameKey); });
+}
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('cf-lang', lang);
+  applyLangToDOM();
+  setMode(cfg.ctrl);
+}
 
 /* ================= ТЕОРИЯ ================= */
 const NOTE = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -232,7 +397,7 @@ const TRANS = {
           [[5,6],[3,5],[6,5],[0,3]], [[4,8],[0,6],[6,3],[1,3],[5,2]],
           [[0,9],[5,4],[3,2]], [[3,6],[1,4],[2,4],[4,4],[0,3]], [[2,6],[0,6],[4,3],[5,2]] ]
 };
-const RESOLVE = [[0,9],[4,7],[3,5],[5,4]]; // выход из заимствованных
+const RESOLVE = [[0,9],[4,7],[3,5],[5,4]];
 const BORROW = {
   major:[[5,'min','iv'],[10,'maj','♭VII'],[8,'maj','♭VI'],[2,'maj','V/V']],
   minor:[[5,'maj','IV'],[1,'maj','♭II'],[7,'min','v'],[3,'dom','V/VI']]
@@ -270,45 +435,50 @@ function hats8(e,v1,v2){
   return a;
 }
 const STYLES = {
-  ballad:{name:'Баллада', swing:.08, sound:'piano',
+  ballad:{nameKey:'style.ballad', swing:.08, sound:'piano',
     drums:{ kick:[{s:0,e:.2,v:1},{s:10,e:.5,v:.8}], snare:[{s:8,e:.3,v:.9}], hat:hats8(.4,.5,.35) },
     bass:[{s:0,n:'root',l:8},{s:8,n:'fifth',l:8,e:.25}],
     harm:[{t:'chord',s:0,l:15},{t:'note',s:4,d:2,l:2,e:.5,v:.7},{t:'note',s:6,d:1,l:2,e:.6,v:.6},
           {t:'note',s:12,d:2,l:2,e:.5,v:.7},{t:'note',s:14,d:3,l:2,e:.65,v:.6}]},
-  lofi:{name:'Лоу-фай', swing:.45, sound:'piano',
+  lofi:{nameKey:'style.lofi', swing:.45, sound:'piano',
     drums:{ kick:[{s:0,e:0,v:1},{s:7,e:.45,v:.7},{s:10,e:.25,v:.9}],
             snare:[{s:4,e:.15,v:.8},{s:12,e:.15,v:.85}], hat:hats8(.3,.4,.3) },
     bass:[{s:0,n:'root',l:3},{s:6,n:'fifth',l:2,e:.4},{s:8,n:'root',l:3},{s:13,n:'root',l:2,e:.55}],
     harm:[{t:'chord',s:0,l:6},{t:'chord',s:10,l:4,e:.35,v:.8}]},
-  bossa:{name:'Босса', swing:0, sound:'pluck',
+  bossa:{nameKey:'style.bossa', swing:0, sound:'pluck',
     drums:{ kick:[{s:0,e:.15,v:.9},{s:6,e:.5,v:.6},{s:8,e:.15,v:.9},{s:14,e:.5,v:.6}],
             snare:[{s:3,e:.35,v:.4},{s:6,e:.4,v:.35},{s:10,e:.35,v:.4},{s:13,e:.4,v:.35}],
             hat:hats8(.2,.4,.3) },
     bass:[{s:0,n:'root',l:5},{s:6,n:'fifth',l:2,e:.3},{s:8,n:'fifth',l:5},{s:14,n:'root',l:2,e:.45}],
     harm:[{t:'chord',s:0,l:2,v:.9},{t:'chord',s:3,l:2,e:.25,v:.8},{t:'chord',s:6,l:3,e:.3,v:.85},
           {t:'chord',s:10,l:2,e:.25,v:.8},{t:'chord',s:13,l:2,e:.5,v:.75}]},
-  rock:{name:'Рок', swing:0, sound:'organ',
+  rock:{nameKey:'style.rock', swing:0, sound:'organ',
     drums:{ kick:[{s:0,e:0,v:1},{s:8,e:0,v:1},{s:6,e:.5,v:.8},{s:10,e:.6,v:.8}],
             snare:[{s:4,e:.1,v:1},{s:12,e:.1,v:1}],
             hat:hats8(.15,.5,.4).concat([1,3,5,7,9,11,13,15].map(s=>({s,e:.7,v:.25}))) },
     bass:[{s:0,n:'root',l:2},{s:2,n:'root',l:2,e:.45},{s:4,n:'root',l:2},{s:6,n:'root',l:2,e:.45},
           {s:8,n:'root',l:2},{s:10,n:'root',l:2,e:.45},{s:12,n:'root',l:2},{s:14,n:'root',l:2,e:.45}],
     harm:[{t:'chord',s:0,l:7},{t:'chord',s:8,l:7},{t:'chord',s:6,l:1,e:.6,v:.7},{t:'chord',s:14,l:1,e:.65,v:.7}]},
-  ambient:{name:'Эмбиент', swing:0, sound:'pad',
+  ambient:{nameKey:'style.ambient', swing:0, sound:'pad',
     drums:{ kick:[], snare:[], hat:[{s:0,e:.6,v:.25},{s:8,e:.6,v:.2}] },
     bass:[{s:0,n:'root',l:16}],
     harm:[{t:'chord',s:0,l:16},{t:'note',s:5,d:4,l:3,e:.4,v:.4},{t:'note',s:11,d:3,l:3,e:.5,v:.35}]}
 };
 
 const TEMPLATES = [
-  {name:'Поп',     root:'C', mode:'major', bpm:104, vari:15, style:'rock',    energy:50, prog:['I','V','vi','IV']},
-  {name:'Лирика',  root:'A', mode:'minor', bpm:76,  vari:20, style:'ballad',  energy:35, prog:['i','VI','III','VII']},
-  {name:'Лоу-фай', root:'D', mode:'minor', bpm:82,  vari:30, style:'lofi',    energy:45, prog:['i','iv','VII','VI']},
-  {name:'Босса',   root:'F', mode:'major', bpm:122, vari:45, style:'bossa',   energy:50, prog:['I','vi','ii','V']},
-  {name:'Эмбиент', root:'E', mode:'minor', bpm:64,  vari:25, style:'ambient', energy:22, prog:['i','VI','III','VII']}
+  {nameKey:'tpl.pop',     root:'C', mode:'major', bpm:104, vari:15, style:'rock',    energy:50, prog:['I','V','vi','IV']},
+  {nameKey:'tpl.lyric',   root:'A', mode:'minor', bpm:76,  vari:20, style:'ballad',  energy:35, prog:['i','VI','III','VII']},
+  {nameKey:'tpl.lofi',    root:'D', mode:'minor', bpm:82,  vari:30, style:'lofi',    energy:45, prog:['i','iv','VII','VI']},
+  {nameKey:'tpl.bossa',   root:'F', mode:'major', bpm:122, vari:45, style:'bossa',   energy:50, prog:['I','vi','ii','V']},
+  {nameKey:'tpl.ambient', root:'E', mode:'minor', bpm:64,  vari:25, style:'ambient', energy:22, prog:['i','VI','III','VII']}
 ];
 
 /* ================= ПОДСКАЗКИ ================= */
+function getModeHint(m) {
+  if (m === 'auto') return t('hint.auto') + progression.map(d=>ROMAN[cfg.mode][d]).join(' – ');
+  return t('hint.' + m);
+}
+
 function regenSuggestions(){
   const out = [];
   if (current.degree!=null){
@@ -427,7 +597,7 @@ function strum(ch, t, dur, vol){
   chordVoicing(ch).forEach((m,i)=> voice(midiF(m), t+i*0.012, dur, p, vol));
 }
 
-/* ================= СЕКВЕНСОР (16 шагов/такт) ================= */
+/* ================= СЕКВЕНСОР ================= */
 let playing=false, timerID=null, nextStepTime=0, stepInBar=0;
 let beatEvents=[];
 
@@ -441,26 +611,23 @@ function scheduler(){
 function scheduleStep(s, t){
   const st = STYLES[cfg.style];
   const sd = 60/cfg.bpm/4;
-  if (s%4===2) t += st.swing*sd*1.1; // свинг на «и»
+  if (s%4===2) t += st.swing*sd*1.1;
   if (s%4===0) beatEvents.push({t, beat:s/4});
   if (s===0) advanceChord();
 
   const E = cfg.energy;
   const dyn = 0.55+0.45*E;
-  // ударные
   if (E>=0.12){
     for (const ev of st.drums.kick)  if (ev.s===s && E>=(ev.e||0)) drumKick(t, ev.v*dyn);
     for (const ev of st.drums.snare) if (ev.s===s && E>=(ev.e||0)) drumSnare(t, ev.v*dyn);
     for (const ev of st.drums.hat)   if (ev.s===s && E>=(ev.e||0)) drumHat(t, ev.v*dyn, ev.open);
   }
-  // бас
   for (const ev of st.bass){
     if (ev.s===s && E>=(ev.e||0)){
       const pc = ev.n==='fifth' ? (current.rootPc+7)%12 : current.rootPc;
       voice(midiF(36+pc), t, ev.l*sd*0.95, PRESETS.piano, 1.1*dyn);
     }
   }
-  // гармония
   for (const ev of st.harm){
     if (ev.s===s && E>=(ev.e||0)){
       if (ev.t==='chord') strum(current, t, ev.l*sd*0.95, (ev.v||1)*dyn);
@@ -593,8 +760,8 @@ function pickChord(ch, src){
 function updateQueueUI(){
   const el=document.getElementById('queueInfo');
   if (queued){
-    const tag = queued.src==='mic' ? ' · по слуху' : '';
-    el.textContent = '→ '+queued.chord.label+' на следующем такте'+tag;
+    const tag = queued.src==='mic' ? t('queue.mic') : '';
+    el.textContent = t('queue.next', {chord: queued.chord.label}) + tag;
   } else el.textContent='';
   drawPiano();
 }
@@ -602,7 +769,7 @@ function updateQueueUI(){
 /* ================= ПИАНИНО ================= */
 const pcv = document.getElementById('piano');
 const px2 = pcv.getContext('2d');
-const PLOW=48, PHIGH=83; // C3..B5
+const PLOW=48, PHIGH=83;
 const WHITE=[0,2,4,5,7,9,11], BLACK=[1,3,6,8,10];
 
 function drawPiano(){
@@ -613,7 +780,6 @@ function drawPiano(){
   px2.setTransform(dp,0,0,dp,0,0);
   px2.clearRect(0,0,W,H);
   const topPad=12, kbH=H-topPad;
-  // белые клавиши
   const whites=[];
   for (let m=PLOW;m<=PHIGH;m++) if (WHITE.indexOf(m%12)>=0) whites.push(m);
   const kw = W/whites.length;
@@ -636,7 +802,6 @@ function drawPiano(){
       px2.fillStyle='#F2C14E'; px2.fill();
     }
   });
-  // чёрные клавиши
   whites.forEach((m,i)=>{
     const bm=m+1;
     if (bm>PHIGH || BLACK.indexOf(bm%12)<0) return;
@@ -654,19 +819,14 @@ function drawPiano(){
 /* ================= РЕЖИМЫ И МИКРОФОН ================= */
 let micOn=false, micStream=null, analyser=null, micTimer=null, micFreq=null;
 let micVotes={last:null,count:0};
-const MODE_HINT = {
-  tap:'вы ведёте гармонию: касайтесь аккордов в графе',
-  auto:()=> 'ведёт шаблон: '+progression.map(d=>ROMAN[cfg.mode][d]).join(' – '),
-  wander:'граф блуждает сам по весам переходов — бесконечный фон; касание перебивает',
-  listen:'играйте аккорды тональности — я перейду следом на границе такта'
-};
+
 function setMode(m){
   if (cfg.ctrl==='listen' && m!=='listen') stopMic();
   cfg.ctrl = m;
   document.querySelectorAll('.chip.mode').forEach(c=>c.classList.toggle('active', c.dataset.m===m));
   const st = document.getElementById('modeStatus');
   st.className='modestatus';
-  st.textContent = typeof MODE_HINT[m]==='function' ? MODE_HINT[m]() : MODE_HINT[m];
+  st.textContent = getModeHint(m);
   document.getElementById('micLine').style.display = m==='listen' ? 'flex' : 'none';
   if (m==='listen') startMic();
 }
@@ -682,16 +842,16 @@ async function startMic(){
     micFreq = new Float32Array(analyser.frequencyBinCount);
     micOn = true;
     micTimer = setInterval(micAnalyze, 120);
-    st.innerHTML = 'слушаю… распознанный аккорд — слева внизу';
+    st.textContent = t('mic.listening');
   }catch(err){
     st.className='modestatus err';
-    st.textContent='Микрофон недоступен: '+err.message+'. В предпросмотре Claude доступ запрещён — откройте файл в браузере.';
+    st.textContent = t('mic.error', {msg: err.message});
     setTimeout(()=>setMode('tap'), 50);
   }
 }
 function stopMic(){
   micOn=false; clearInterval(micTimer);
-  if (micStream) micStream.getTracks().forEach(t=>t.stop());
+  if (micStream) micStream.getTracks().forEach(tr=>tr.stop());
   micStream=null;
   document.getElementById('micChord').textContent='—';
   document.getElementById('micLevel').style.width='0%';
@@ -736,17 +896,23 @@ const AI_MODELS=['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
 async function aiGenerate(){
   const st=document.getElementById('aiStatus');
   const key=document.getElementById('apiKey').value.trim();
-  const mood=document.getElementById('aiMood').value.trim()||'светлое спокойное настроение';
-  if (!key){ st.className='status err'; st.textContent='Вставьте ключ API (ссылка выше).'; return; }
-  st.className='status'; st.textContent='Генерирую…';
+  const mood=document.getElementById('aiMood').value.trim() || (lang==='en' ? 'bright calm mood' : 'светлое спокойное настроение');
+  if (!key){ st.className='status err'; st.textContent=t('ai.nokey'); return; }
+  st.className='status'; st.textContent=t('ai.generating');
   document.getElementById('bAI').disabled=true;
-  const prompt =
-    'Ты генератор шаблонов для аккордового аранжировщика. Верни ТОЛЬКО валидный JSON без markdown:\n'+
-    '{"name":"короткое название","root":"одна из C C# D D# E F F# G G# A A# B","mode":"major или minor",'+
-    '"bpm":число 60-160,"variability":0-100,"style":"ballad|lofi|bossa|rock|ambient","energy":0-100,'+
-    '"progression":[4-8 ступеней]}\n'+
-    'Ступени СТРОГО из списка: major: I ii iii IV V vi vii° ; minor: i ii° III iv V VI VII.\n'+
-    'Настроение: '+mood;
+  const prompt = lang === 'en'
+    ? 'You are a template generator for a chord arranger. Return ONLY valid JSON without markdown:\n'+
+      '{"name":"short name","root":"one of C C# D D# E F F# G G# A A# B","mode":"major or minor",'+
+      '"bpm":number 60-160,"variability":0-100,"style":"ballad|lofi|bossa|rock|ambient","energy":0-100,'+
+      '"progression":[4-8 scale degrees]}\n'+
+      'Degrees STRICTLY from: major: I ii iii IV V vi vii° ; minor: i ii° III iv V VI VII.\n'+
+      'Mood: '+mood
+    : 'Ты генератор шаблонов для аккордового аранжировщика. Верни ТОЛЬКО валидный JSON без markdown:\n'+
+      '{"name":"короткое название","root":"одна из C C# D D# E F F# G G# A A# B","mode":"major или minor",'+
+      '"bpm":число 60-160,"variability":0-100,"style":"ballad|lofi|bossa|rock|ambient","energy":0-100,'+
+      '"progression":[4-8 ступеней]}\n'+
+      'Ступени СТРОГО из списка: major: I ii iii IV V vi vii° ; minor: i ii° III iv V VI VII.\n'+
+      'Настроение: '+mood;
   let lastErr='';
   for (const model of AI_MODELS){
     try{
@@ -757,24 +923,24 @@ async function aiGenerate(){
       if (!r.ok){ lastErr='HTTP '+r.status; continue; }
       const data = await r.json();
       const txt = (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
-      const tpl = JSON.parse(txt.replace(/```json|```/g,'').trim());
+      const parsed = JSON.parse(txt.replace(/```json|```/g,'').trim());
       applyTemplate({
-        name: tpl.name||'AI', root: tpl.root||'C',
-        mode: tpl.mode==='minor'?'minor':'major',
-        bpm: Math.max(50,Math.min(180, tpl.bpm|0 || 100)),
-        vari: Math.max(0,Math.min(100, tpl.variability|0)),
-        style: STYLES[tpl.style]? tpl.style : 'ballad',
-        energy: Math.max(0,Math.min(100, tpl.energy|0 || 50)),
-        prog: Array.isArray(tpl.progression)? tpl.progression : ['I','V','vi','IV']
+        nameKey: null, root: parsed.root||'C',
+        mode: parsed.mode==='minor'?'minor':'major',
+        bpm: Math.max(50,Math.min(180, parsed.bpm|0 || 100)),
+        vari: Math.max(0,Math.min(100, parsed.variability|0)),
+        style: STYLES[parsed.style]? parsed.style : 'ballad',
+        energy: Math.max(0,Math.min(100, parsed.energy|0 || 50)),
+        prog: Array.isArray(parsed.progression)? parsed.progression : ['I','V','vi','IV']
       });
       st.className='status ok';
-      st.textContent='Готово: «'+(tpl.name||'AI')+'» · '+model;
+      st.textContent=t('ai.done', {name: parsed.name||'AI', model});
       document.getElementById('bAI').disabled=false;
       return;
     }catch(err){ lastErr=err.message; }
   }
   st.className='status err';
-  st.textContent='Не получилось: '+lastErr+'. Если ошибка сети — в предпросмотре Claude внешние запросы заблокированы; откройте файл в браузере.';
+  st.textContent=t('ai.error', {msg: lastErr});
   document.getElementById('bAI').disabled=false;
 }
 
@@ -791,21 +957,21 @@ function applyStyle(styleId){
   document.querySelectorAll('#styleChips .chip').forEach(c=>
     c.classList.toggle('active', c.dataset.s===styleId));
 }
-function applyTemplate(t){
-  cfg.bpm=t.bpm; cfg.mode=t.mode;
-  cfg.rootPc = NOTE.indexOf(t.root)>=0 ? NOTE.indexOf(t.root) : 0;
-  cfg.vari=t.vari/100; cfg.energy=t.energy/100;
+function applyTemplate(tpl){
+  cfg.bpm=tpl.bpm; cfg.mode=tpl.mode;
+  cfg.rootPc = NOTE.indexOf(tpl.root)>=0 ? NOTE.indexOf(tpl.root) : 0;
+  cfg.vari=tpl.vari/100; cfg.energy=tpl.energy/100;
   diatonic = buildDiatonic(cfg.rootPc, cfg.mode);
-  progression = t.prog.map(rm=>{const d=romanToDeg(rm,cfg.mode); return d>=0?d:0;});
+  progression = tpl.prog.map(rm=>{const d=romanToDeg(rm,cfg.mode); return d>=0?d:0;});
   progPtr=1; queued=null;
-  applyStyle(t.style);
+  applyStyle(tpl.style);
   setCurrent(diatonic[progression[0]||0]);
   $('rBpm').value=cfg.bpm; $('vBpm').textContent=cfg.bpm+' bpm'; $('bpmShow').textContent=cfg.bpm;
   $('rVar').value=Math.round(cfg.vari*100); $('vVar').textContent=Math.round(cfg.vari*100)+'%';
   $('rEnergy').value=Math.round(cfg.energy*100); $('vEnergy').textContent=Math.round(cfg.energy*100)+'%';
   $('selRoot').value=cfg.rootPc; $('selMode').value=cfg.mode;
   updateQueueUI();
-  if (cfg.ctrl==='auto') setMode('auto'); // обновить подпись прогрессии
+  if (cfg.ctrl==='auto') setMode('auto');
 }
 function rebuildKey(){
   diatonic = buildDiatonic(cfg.rootPc, cfg.mode);
@@ -821,19 +987,20 @@ NOTE.forEach((n,i)=>{ const o=document.createElement('option'); o.value=i; o.tex
 const styleChips = $('styleChips');
 Object.keys(STYLES).forEach(sid=>{
   const b=document.createElement('button');
-  b.className='chip'; b.dataset.s=sid; b.textContent=STYLES[sid].name;
+  b.className='chip'; b.dataset.s=sid; b.textContent=t('style.'+sid);
   b.addEventListener('click', ()=>applyStyle(sid));
   styleChips.appendChild(b);
 });
 const tplChips = $('tplChips');
-TEMPLATES.forEach((t,i)=>{
+TEMPLATES.forEach((tpl,i)=>{
   const b=document.createElement('button');
   b.className='chip'+(i===1?' active':'');
-  b.textContent=t.name;
+  b.dataset.tpl=String(i);
+  b.textContent=t(tpl.nameKey);
   b.addEventListener('click', ()=>{
     tplChips.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     b.classList.add('active');
-    applyTemplate(t);
+    applyTemplate(tpl);
   });
   tplChips.appendChild(b);
 });
@@ -848,6 +1015,7 @@ $('selRoot').addEventListener('change', e=>{ cfg.rootPc=+e.target.value; rebuild
 $('selMode').addEventListener('change', e=>{ cfg.mode=e.target.value; rebuildKey(); });
 $('selSound').addEventListener('change', e=>{ cfg.sound=e.target.value; });
 $('bAI').addEventListener('click', aiGenerate);
+$('langBtn').addEventListener('click', ()=>setLang(lang==='ru'?'en':'ru'));
 
 /* ================= ЦИКЛ ВИЗУАЛА ================= */
 const dots = document.querySelectorAll('.beats i');
@@ -869,6 +1037,10 @@ setMode('auto');
 gResize();
 drawPiano();
 raf();
+
+// Apply saved language after full init
+if (lang !== 'ru') setLang(lang);
+
 })();
 </script>
 </body>
