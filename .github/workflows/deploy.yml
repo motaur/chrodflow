@@ -18,8 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare deploy
+        run: mkdir _site && cp index.html _site/
+
       - name: Deploy to Cloudflare Pages
-        run: npx wrangler@latest pages deploy . --project-name=chordflow --branch=main
+        run: npx wrangler@latest pages deploy _site --project-name=chordflow --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -75,6 +75,11 @@
   .status.ok{color:var(--teal)}
   .hintnote{font-size:12px;color:var(--muted);line-height:1.55;margin-top:6px}
   .divider{border:0;border-top:1px solid var(--line);margin:14px 0}
+  .about p{font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 8px}
+  .about p:last-child{margin:0}
+  .about strong{color:var(--ink)}
+  .mic-warn{margin-top:10px;padding:10px 12px;border-radius:10px;background:#1B1429;border:1px solid #3B2555;font-size:12px;color:#C4B8E0;line-height:1.65}
+  .mic-warn b{color:#D4A8FF}
   @media (max-width:740px){ .col-side{flex:1 1 100%} }
 </style>
 </head>
@@ -137,6 +142,16 @@
 
   </div>
   <div class="col-side">
+
+    <div class="card about">
+      <h2>About Chord Flow</h2>
+      <p><strong>Chord Flow</strong> is a real-time harmony arranger and chord progression explorer. Pick a key, mode, and musical style, then navigate chord progressions through an interactive graph.</p>
+      <p><strong>Tap</strong> — you choose every chord manually by tapping the graph. <strong>Auto-pilot</strong> — follows a preset progression on loop. <strong>Wander</strong> — drifts harmonically on its own using transition weights. <strong>Mic Listener</strong> — detects chords from your microphone and follows your playing.</p>
+      <div class="mic-warn">
+        <b>🎧 Mic Listener — audio routing</b><br>
+        The microphone listens for chords played on a <em>real instrument</em> (guitar, keys, voice). <strong>Always use headphones</strong> when Mic Listener is active — if the app's speaker output reaches the microphone it will interfere with chord detection. For recording: route the app audio and your instrument to <strong>separate tracks</strong> so they don't bleed into each other.
+      </div>
+    </div>
 
     <div class="card">
       <h2>Стиль и звучание</h2>
