@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord Flow v2 — аранжировщик</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600&family=Manrope:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --bg:#131119; --card:#1B1824; --line:#2A2536;
+    --ink:#EDE8F6; --muted:#8E86A3;
+    --coral:#FF8A5C; --violet:#9D8CFF; --teal:#5FD4C4; --gold:#F2C14E;
+    --display:'Unbounded', sans-serif;
+    --body:'Manrope', system-ui, sans-serif;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px}
+  header{padding:18px 16px 8px}
+  header h1{font-family:var(--display);font-weight:600;font-size:22px;margin:0}
+  header h1 em{color:var(--coral);font-style:normal}
+  header p{margin:4px 0 0;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)}
+  .layout{display:flex;flex-wrap:wrap;gap:12px;padding:10px 12px 30px;align-items:flex-start}
+  .col-main{flex:1 1 480px;min-width:300px;display:flex;flex-direction:column;gap:12px}
+  .col-side{flex:0 1 340px;min-width:290px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .card h2{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.2em;color:var(--muted);margin:0 0 10px}
+
+  .transport{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  #bPlay{width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;background:var(--coral);color:#23130C;font-size:22px;flex:0 0 auto}
+  #bPlay.playing{background:var(--violet);color:#161126}
+  .nowbox{flex:1 1 auto;min-width:140px}
+  .nowbox .chord{font-family:var(--display);font-size:34px;line-height:1.1}
+  .nowbox .queue{font-family:var(--mono);font-size:11px;color:var(--gold);min-height:15px}
+  .beats{display:flex;gap:6px}
+  .beats i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+  .beats i.on{background:var(--coral)}
+  .bpmtag{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .bpmtag b{color:var(--ink);font-size:16px;font-weight:500}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:11.5px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  .chip:hover{border-color:var(--muted)}
+  .chip.active{background:var(--violet);border-color:var(--violet);color:#15101F}
+  .chip.mode.active{background:var(--teal);border-color:var(--teal);color:#0E1A18}
+  .modestatus{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;min-height:15px}
+  .modestatus b{color:var(--teal);font-weight:500}
+  .modestatus.err{color:#F08A8A}
+  .micline{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .micchord{font-family:var(--display);font-size:18px;min-width:54px}
+  .level{flex:1;height:6px;border-radius:3px;background:#15121D;overflow:hidden}
+  .level i{display:block;height:100%;width:0%;background:var(--teal);transition:width .1s}
+
+  .graph-box{position:relative;aspect-ratio:10/9;border-radius:12px;overflow:hidden;background:radial-gradient(circle at 50% 45%, #201C2D 0%, #15121D 70%)}
+  canvas#graph{display:block;width:100%;height:100%;touch-action:manipulation;cursor:pointer}
+  .graph-hint{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.6}
+  .fkey{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:-1px;margin:0 3px 0 8px}
+
+  canvas#piano{display:block;width:100%;height:118px;border-radius:10px}
+  .piano-hint{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:8px}
+
+  .ctrl{margin:12px 0}
+  .ctrl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:5px}
+  .ctrl output{color:var(--ink)}
+  input[type=range]{width:100%;accent-color:var(--coral);height:24px}
+  select,input[type=text],input[type=password]{width:100%;background:#15121D;border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:var(--mono);font-size:13px;padding:9px 10px}
+  .row2{display:flex;gap:8px}
+  .row2>*{flex:1}
+  button.action{font-family:var(--mono);font-size:12px;width:100%;background:var(--coral);border:none;border-radius:9px;color:#23130C;padding:11px;cursor:pointer;font-weight:500}
+  button.action:disabled{opacity:.5}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  a{color:var(--teal)}
+  .status{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;min-height:14px;word-break:break-word}
+  .status.err{color:#F08A8A}
+  .status.ok{color:var(--teal)}
+  .hintnote{font-size:12px;color:var(--muted);line-height:1.55;margin-top:6px}
+  .divider{border:0;border-top:1px solid var(--line);margin:14px 0}
+  @media (max-width:740px){ .col-side{flex:1 1 100%} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Chord <em>Flow</em> v2</h1>
+  <p>аранжировщик · граф вместо секвенсора</p>
+</header>
+
+<div class="layout">
+  <div class="col-main">
+
+    <div class="card">
+      <div class="transport">
+        <button id="bPlay" aria-label="Играть">▶</button>
+        <div class="nowbox">
+          <div class="chord" id="nowChord">C</div>
+          <div class="queue" id="queueInfo"></div>
+        </div>
+        <div>
+          <div class="beats"><i></i><i></i><i></i><i></i></div>
+          <div class="bpmtag" style="margin-top:7px"><b id="bpmShow">100</b> bpm</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Кто ведёт гармонию</h2>
+      <div class="chips">
+        <button class="chip mode" data-m="tap">Касание</button>
+        <button class="chip mode" data-m="auto">Автопилот</button>
+        <button class="chip mode" data-m="wander">Блуждание</button>
+        <button class="chip mode" data-m="listen">🎙 Слушатель</button>
+      </div>
+      <div class="modestatus" id="modeStatus"></div>
+      <div class="micline" id="micLine" style="display:none">
+        <div class="micchord" id="micChord">—</div>
+        <div class="level"><i id="micLevel"></i></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Граф переходов — касание перебивает любой режим</h2>
+      <div class="graph-box"><canvas id="graph"></canvas></div>
+      <div class="graph-hint">
+        переход на границе такта ·
+        <span class="fkey" style="background:var(--violet)"></span>тоника
+        <span class="fkey" style="background:var(--teal)"></span>субдоминанта
+        <span class="fkey" style="background:var(--coral)"></span>доминанта
+        <span class="fkey" style="background:var(--gold)"></span>вне тональности
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Клавиши — что играть</h2>
+      <canvas id="piano"></canvas>
+      <div class="piano-hint">закрашено — текущий аккорд · точки сверху — следующий в очереди</div>
+    </div>
+
+  </div>
+  <div class="col-side">
+
+    <div class="card">
+      <h2>Стиль и звучание</h2>
+      <div class="chips" id="styleChips"></div>
+      <div class="ctrl">
+        <label>Энергия <output id="vEnergy">50%</output></label>
+        <input type="range" id="rEnergy" min="0" max="100" step="5" value="50">
+      </div>
+      <div class="ctrl" style="margin-bottom:2px">
+        <label>Инструмент гармонии</label>
+        <select id="selSound">
+          <option value="piano">Пианино</option>
+          <option value="pad">Пэд</option>
+          <option value="pluck">Щипок</option>
+          <option value="organ">Орган</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Тональность и характер</h2>
+      <div class="ctrl" style="margin-top:2px">
+        <label>Темп <output id="vBpm">100 bpm</output></label>
+        <input type="range" id="rBpm" min="50" max="180" step="2" value="100">
+      </div>
+      <div class="row2">
+        <select id="selRoot"></select>
+        <select id="selMode">
+          <option value="major">мажор</option>
+          <option value="minor">минор</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label>Отклонение от тональности <output id="vVar">20%</output></label>
+        <input type="range" id="rVar" min="0" max="100" step="5" value="20">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Шаблоны и ИИ</h2>
+      <div class="chips" id="tplChips"></div>
+      <hr class="divider">
+      <input type="password" id="apiKey" placeholder="Ключ Google AI Studio" autocomplete="off">
+      <div class="hintnote">
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Получить бесплатный ключ →</a>
+        · хранится только в этой сессии
+      </div>
+      <div class="ctrl" style="margin-bottom:8px">
+        <input type="text" id="aiMood" placeholder="Настроение: «ночная поездка по городу»">
+      </div>
+      <button class="action" id="bAI">Сгенерировать шаблон</button>
+      <div class="status" id="aiStatus"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= ТЕОРИЯ ================= */
+const NOTE = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SCALE = { major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10] };
+const QUAL  = { major:['maj','min','min','maj','dom','min','dim'],
+                minor:['min','dim','maj','min','dom','maj','maj'] };
+const ROMAN = { major:['I','ii','iii','IV','V','vi','vii°'],
+                minor:['i','ii°','III','iv','V','VI','VII'] };
+const FUNC  = { major:[0,1,0,1,2,0,2], minor:[0,1,0,1,2,0,2] };
+const FCOLOR = ['#9D8CFF','#5FD4C4','#FF8A5C'];
+const TRI = { maj:[0,4,7], min:[0,3,7], dim:[0,3,6], dom:[0,4,7,10] };
+const SUF = { maj:'', min:'m', dim:'°', dom:'' };
+const TRANS = {
+  major:[ [[3,8],[4,8],[5,6],[1,5],[2,3],[6,2]], [[4,9],[6,4],[3,3],[0,2]],
+          [[5,8],[3,6],[1,3]], [[4,8],[0,6],[1,4],[5,3],[6,2]],
+          [[0,9],[5,5],[3,3],[2,2]], [[1,6],[3,6],[4,5],[0,3],[2,3]], [[0,8],[2,4],[4,2]] ],
+  minor:[ [[3,8],[4,8],[5,6],[6,5],[2,4],[1,3]], [[4,9],[6,3],[0,2]],
+          [[5,6],[3,5],[6,5],[0,3]], [[4,8],[0,6],[6,3],[1,3],[5,2]],
+          [[0,9],[5,4],[3,2]], [[3,6],[1,4],[2,4],[4,4],[0,3]], [[2,6],[0,6],[4,3],[5,2]] ]
+};
+const RESOLVE = [[0,9],[4,7],[3,5],[5,4]]; // выход из заимствованных
+const BORROW = {
+  major:[[5,'min','iv'],[10,'maj','♭VII'],[8,'maj','♭VI'],[2,'maj','V/V']],
+  minor:[[5,'maj','IV'],[1,'maj','♭II'],[7,'min','v'],[3,'dom','V/VI']]
+};
+function makeChord(rootPc, qual, roman, degree, func){
+  rootPc = ((rootPc%12)+12)%12;
+  return { rootPc, qual, degree, func, roman,
+    pcs: TRI[qual].map(iv=>(rootPc+iv)%12),
+    label: NOTE[rootPc]+SUF[qual]+(qual==='dom'?'7':''),
+    key: NOTE[rootPc]+qual };
+}
+function buildDiatonic(rootPc, mode){
+  return SCALE[mode].map((off,i)=>{
+    let pc = rootPc+off;
+    if (mode==='minor' && i===4) pc = rootPc+7;
+    return makeChord(pc, QUAL[mode][i], ROMAN[mode][i], i, FUNC[mode][i]);
+  });
+}
+
+/* ================= СОСТОЯНИЕ ================= */
+const cfg = {
+  bpm:100, rootPc:0, mode:'major', vari:0.2,
+  sound:'piano', style:'ballad', energy:0.5, ctrl:'auto'
+};
+let diatonic = buildDiatonic(cfg.rootPc, cfg.mode);
+let current = diatonic[0];
+let curVoice = [], curVoiceExt = [];
+let queued = null;
+let progression = [0,4,5,3], progPtr = 1;
+let suggestions = [];
+
+/* ================= СТИЛИ ================= */
+function hats8(e,v1,v2){
+  const a=[]; for(let s=0;s<16;s+=2) a.push({s,e,v:(s%4===0?v1:v2)});
+  return a;
+}
+const STYLES = {
+  ballad:{name:'Баллада', swing:.08, sound:'piano',
+    drums:{ kick:[{s:0,e:.2,v:1},{s:10,e:.5,v:.8}], snare:[{s:8,e:.3,v:.9}], hat:hats8(.4,.5,.35) },
+    bass:[{s:0,n:'root',l:8},{s:8,n:'fifth',l:8,e:.25}],
+    harm:[{t:'chord',s:0,l:15},{t:'note',s:4,d:2,l:2,e:.5,v:.7},{t:'note',s:6,d:1,l:2,e:.6,v:.6},
+          {t:'note',s:12,d:2,l:2,e:.5,v:.7},{t:'note',s:14,d:3,l:2,e:.65,v:.6}]},
+  lofi:{name:'Лоу-фай', swing:.45, sound:'piano',
+    drums:{ kick:[{s:0,e:0,v:1},{s:7,e:.45,v:.7},{s:10,e:.25,v:.9}],
+            snare:[{s:4,e:.15,v:.8},{s:12,e:.15,v:.85}], hat:hats8(.3,.4,.3) },
+    bass:[{s:0,n:'root',l:3},{s:6,n:'fifth',l:2,e:.4},{s:8,n:'root',l:3},{s:13,n:'root',l:2,e:.55}],
+    harm:[{t:'chord',s:0,l:6},{t:'chord',s:10,l:4,e:.35,v:.8}]},
+  bossa:{name:'Босса', swing:0, sound:'pluck',
+    drums:{ kick:[{s:0,e:.15,v:.9},{s:6,e:.5,v:.6},{s:8,e:.15,v:.9},{s:14,e:.5,v:.6}],
+            snare:[{s:3,e:.35,v:.4},{s:6,e:.4,v:.35},{s:10,e:.35,v:.4},{s:13,e:.4,v:.35}],
+            hat:hats8(.2,.4,.3) },
+    bass:[{s:0,n:'root',l:5},{s:6,n:'fifth',l:2,e:.3},{s:8,n:'fifth',l:5},{s:14,n:'root',l:2,e:.45}],
+    harm:[{t:'chord',s:0,l:2,v:.9},{t:'chord',s:3,l:2,e:.25,v:.8},{t:'chord',s:6,l:3,e:.3,v:.85},
+          {t:'chord',s:10,l:2,e:.25,v:.8},{t:'chord',s:13,l:2,e:.5,v:.75}]},
+  rock:{name:'Рок', swing:0, sound:'organ',
+    drums:{ kick:[{s:0,e:0,v:1},{s:8,e:0,v:1},{s:6,e:.5,v:.8},{s:10,e:.6,v:.8}],
+            snare:[{s:4,e:.1,v:1},{s:12,e:.1,v:1}],
+            hat:hats8(.15,.5,.4).concat([1,3,5,7,9,11,13,15].map(s=>({s,e:.7,v:.25}))) },
+    bass:[{s:0,n:'root',l:2},{s:2,n:'root',l:2,e:.45},{s:4,n:'root',l:2},{s:6,n:'root',l:2,e:.45},
+          {s:8,n:'root',l:2},{s:10,n:'root',l:2,e:.45},{s:12,n:'root',l:2},{s:14,n:'root',l:2,e:.45}],
+    harm:[{t:'chord',s:0,l:7},{t:'chord',s:8,l:7},{t:'chord',s:6,l:1,e:.6,v:.7},{t:'chord',s:14,l:1,e:.65,v:.7}]},
+  ambient:{name:'Эмбиент', swing:0, sound:'pad',
+    drums:{ kick:[], snare:[], hat:[{s:0,e:.6,v:.25},{s:8,e:.6,v:.2}] },
+    bass:[{s:0,n:'root',l:16}],
+    harm:[{t:'chord',s:0,l:16},{t:'note',s:5,d:4,l:3,e:.4,v:.4},{t:'note',s:11,d:3,l:3,e:.5,v:.35}]}
+};
+
+const TEMPLATES = [
+  {name:'Поп',     root:'C', mode:'major', bpm:104, vari:15, style:'rock',    energy:50, prog:['I','V','vi','IV']},
+  {name:'Лирика',  root:'A', mode:'minor', bpm:76,  vari:20, style:'ballad',  energy:35, prog:['i','VI','III','VII']},
+  {name:'Лоу-фай', root:'D', mode:'minor', bpm:82,  vari:30, style:'lofi',    energy:45, prog:['i','iv','VII','VI']},
+  {name:'Босса',   root:'F', mode:'major', bpm:122, vari:45, style:'bossa',   energy:50, prog:['I','vi','ii','V']},
+  {name:'Эмбиент', root:'E', mode:'minor', bpm:64,  vari:25, style:'ambient', energy:22, prog:['i','VI','III','VII']}
+];
+
+/* ================= ПОДСКАЗКИ ================= */
+function regenSuggestions(){
+  const out = [];
+  if (current.degree!=null){
+    let cands = TRANS[cfg.mode][current.degree].slice();
+    cands.sort((a,b)=> (b[1]+Math.random()*6*cfg.vari) - (a[1]+Math.random()*6*cfg.vari));
+    for (const [deg,w] of cands.slice(0,5)) out.push({chord:diatonic[deg], w});
+  } else {
+    for (const [deg,w] of RESOLVE) out.push({chord:diatonic[deg], w});
+  }
+  const nBorrow = cfg.vari>0.55 ? 2 : (cfg.vari>0.2 ? 1 : 0);
+  const pool = BORROW[cfg.mode].slice().sort(()=>Math.random()-0.5);
+  for (let i=0;i<nBorrow;i++){
+    const [off,q,rm] = pool[i];
+    const ch = makeChord(cfg.rootPc+off, q, rm, null, null);
+    if (ch.key!==current.key && !out.some(s=>s.chord.key===ch.key))
+      out.push({chord:ch, w:3+cfg.vari*4});
+  }
+  suggestions = out.filter(s=>s.chord.key!==current.key).slice(0,6);
+  layoutGraph();
+}
+function weightedPick(cands){
+  let sum=0; for (const c of cands) sum+=c[1];
+  let r=Math.random()*sum;
+  for (const c of cands){ r-=c[1]; if (r<=0) return diatonic[c[0]]; }
+  return diatonic[cands[0][0]];
+}
+function wanderPick(){
+  if (current.degree!=null && Math.random() < cfg.vari*0.3){
+    const b = BORROW[cfg.mode][Math.floor(Math.random()*BORROW[cfg.mode].length)];
+    const ch = makeChord(cfg.rootPc+b[0], b[1], b[2], null, null);
+    if (ch.key!==current.key) return ch;
+  }
+  return weightedPick(current.degree!=null ? TRANS[cfg.mode][current.degree] : RESOLVE);
+}
+
+/* ================= АУДИО ================= */
+let AC=null, master=null, noiseBuf=null;
+function ensureAudio(){
+  if (!AC){
+    AC = new (window.AudioContext||window.webkitAudioContext)();
+    const comp = AC.createDynamicsCompressor();
+    master = AC.createGain(); master.gain.value = 0.7;
+    master.connect(comp); comp.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate*0.2, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  }
+  if (AC.state==='suspended') AC.resume();
+}
+const PRESETS = {
+  piano:{gain:.30,attack:.005,release:.30,cut:5200,layers:[{t:'triangle',o:0,l:.7},{t:'sine',o:1,l:.22}]},
+  pad:  {gain:.20,attack:.45, release:.90,cut:1700,layers:[{t:'sawtooth',o:0,l:.5,d:-8},{t:'sawtooth',o:0,l:.5,d:8},{t:'sine',o:-1,l:.3}]},
+  pluck:{gain:.26,attack:.003,release:.09,cut:2600,layers:[{t:'square',o:0,l:.6},{t:'sine',o:0,l:.3}]},
+  organ:{gain:.22,attack:.02, release:.18,cut:6000,layers:[{t:'sine',o:0,l:.6},{t:'sine',o:1,l:.4},{t:'sine',o:2,l:.2}]}
+};
+const hum = ()=>0.93+Math.random()*0.14;
+function midiF(m){ return 440*Math.pow(2,(m-69)/12); }
+function voice(freq, t, dur, p, vol){
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(p.gain*(vol||1)*hum(), t+p.attack);
+  g.gain.setTargetAtTime(0, t+dur, p.release);
+  const f = AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=p.cut;
+  g.connect(f); f.connect(master);
+  for (const L of p.layers){
+    const o = AC.createOscillator();
+    o.type=L.t; o.frequency.value=freq*Math.pow(2,L.o||0); o.detune.value=L.d||0;
+    const og = AC.createGain(); og.gain.value=L.l;
+    o.connect(og); og.connect(g);
+    o.start(t); o.stop(t+dur+p.release*4+0.2);
+  }
+}
+function drumKick(t,v){
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(150,t);
+  o.frequency.exponentialRampToValueAtTime(45,t+0.12);
+  g.gain.setValueAtTime(0.9*v,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.25);
+}
+function drumSnare(t,v){
+  const s=AC.createBufferSource(); s.buffer=noiseBuf;
+  const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1900; f.Q.value=0.8;
+  const g=AC.createGain();
+  g.gain.setValueAtTime(0.5*v,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t+0.18);
+  const o=AC.createOscillator(), og=AC.createGain();
+  o.type='triangle'; o.frequency.value=185;
+  og.gain.setValueAtTime(0.25*v,t);
+  og.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+  o.connect(og); og.connect(master); o.start(t); o.stop(t+0.1);
+}
+function drumHat(t,v,open){
+  const s=AC.createBufferSource(); s.buffer=noiseBuf;
+  const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=7500;
+  const g=AC.createGain();
+  const dur = open?0.18:0.05;
+  g.gain.setValueAtTime(0.22*v,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t+dur+0.02);
+}
+function chordVoicing(ch){
+  let base = 60 + ch.rootPc; if (base>66) base-=12;
+  const notes=[base]; let prev=base;
+  for (let i=1;i<ch.pcs.length;i++){
+    let n = prev + ((ch.pcs[i]-prev%12)+12)%12;
+    if (n===prev) n+=12;
+    notes.push(n); prev=n;
+  }
+  return notes;
+}
+function strum(ch, t, dur, vol){
+  const p = PRESETS[cfg.sound];
+  chordVoicing(ch).forEach((m,i)=> voice(midiF(m), t+i*0.012, dur, p, vol));
+}
+
+/* ================= СЕКВЕНСОР (16 шагов/такт) ================= */
+let playing=false, timerID=null, nextStepTime=0, stepInBar=0;
+let beatEvents=[];
+
+function scheduler(){
+  while (nextStepTime < AC.currentTime + 0.12){
+    scheduleStep(stepInBar, nextStepTime);
+    nextStepTime += 60/cfg.bpm/4;
+    stepInBar = (stepInBar+1)%16;
+  }
+}
+function scheduleStep(s, t){
+  const st = STYLES[cfg.style];
+  const sd = 60/cfg.bpm/4;
+  if (s%4===2) t += st.swing*sd*1.1; // свинг на «и»
+  if (s%4===0) beatEvents.push({t, beat:s/4});
+  if (s===0) advanceChord();
+
+  const E = cfg.energy;
+  const dyn = 0.55+0.45*E;
+  // ударные
+  if (E>=0.12){
+    for (const ev of st.drums.kick)  if (ev.s===s && E>=(ev.e||0)) drumKick(t, ev.v*dyn);
+    for (const ev of st.drums.snare) if (ev.s===s && E>=(ev.e||0)) drumSnare(t, ev.v*dyn);
+    for (const ev of st.drums.hat)   if (ev.s===s && E>=(ev.e||0)) drumHat(t, ev.v*dyn, ev.open);
+  }
+  // бас
+  for (const ev of st.bass){
+    if (ev.s===s && E>=(ev.e||0)){
+      const pc = ev.n==='fifth' ? (current.rootPc+7)%12 : current.rootPc;
+      voice(midiF(36+pc), t, ev.l*sd*0.95, PRESETS.piano, 1.1*dyn);
+    }
+  }
+  // гармония
+  for (const ev of st.harm){
+    if (ev.s===s && E>=(ev.e||0)){
+      if (ev.t==='chord') strum(current, t, ev.l*sd*0.95, (ev.v||1)*dyn);
+      else {
+        const m = curVoiceExt[Math.min(ev.d, curVoiceExt.length-1)];
+        voice(midiF(m), t, ev.l*sd*0.95, PRESETS[cfg.sound], (ev.v||0.7)*dyn);
+      }
+    }
+  }
+}
+function advanceChord(){
+  let next=null;
+  if (queued) next = queued.chord;
+  else if (cfg.ctrl==='auto' && progression.length){
+    next = diatonic[progression[progPtr % progression.length]];
+    progPtr++;
+  }
+  else if (cfg.ctrl==='wander') next = wanderPick();
+  queued = null;
+  if (next && next.key!==current.key) setCurrent(next);
+  updateQueueUI();
+}
+function setCurrent(ch){
+  current = ch;
+  curVoice = chordVoicing(ch);
+  curVoiceExt = curVoice.concat([curVoice[0]+12, curVoice[1]+12]);
+  document.getElementById('nowChord').textContent = ch.label;
+  regenSuggestions();
+  drawPiano();
+}
+function togglePlay(){
+  ensureAudio();
+  playing = !playing;
+  const b = document.getElementById('bPlay');
+  b.textContent = playing ? '■' : '▶';
+  b.classList.toggle('playing', playing);
+  if (playing){
+    nextStepTime = AC.currentTime + 0.06;
+    stepInBar = 0;
+    timerID = setInterval(scheduler, 25);
+  } else {
+    clearInterval(timerID);
+    beatEvents.length = 0;
+    document.querySelectorAll('.beats i').forEach(d=>d.classList.remove('on'));
+  }
+}
+
+/* ================= ГРАФ ================= */
+const gcv = document.getElementById('graph');
+const gx = gcv.getContext('2d');
+let GW=300, GH=270, dpr=1, nodes=[], lastBeatT=0;
+
+function gResize(){
+  dpr = Math.min(window.devicePixelRatio||1, 2);
+  const r = gcv.parentElement.getBoundingClientRect();
+  GW=r.width; GH=r.height;
+  gcv.width=Math.round(GW*dpr); gcv.height=Math.round(GH*dpr);
+  gx.setTransform(dpr,0,0,dpr,0,0);
+  layoutGraph(true);
+}
+function layoutGraph(snap){
+  const cx=GW/2, cy=GH/2, R=Math.min(GW,GH)*0.36;
+  const n = suggestions.length;
+  nodes = suggestions.map((sg,i)=>{
+    const a = -Math.PI/2 + i*(Math.PI*2/Math.max(n,3));
+    const old = nodes.find(o=>o.key===sg.chord.key);
+    const tx=cx+Math.cos(a)*R, ty=cy+Math.sin(a)*R;
+    return { key:sg.chord.key, chord:sg.chord, w:sg.w, tx, ty,
+      x: old? old.x : (snap? tx : cx), y: old? old.y : (snap? ty : cy),
+      r: 20 + Math.min(sg.w,10)*1.4 };
+  });
+}
+function nodeColor(ch){ return ch.func==null ? '#F2C14E' : FCOLOR[ch.func]; }
+function drawGraph(){
+  gx.clearRect(0,0,GW,GH);
+  const cx=GW/2, cy=GH/2, bd=60/cfg.bpm;
+  let pulse=1;
+  if (playing && AC){
+    const ph=Math.max(0,Math.min(1,(AC.currentTime-lastBeatT)/bd));
+    pulse = 1 + 0.07*(1-ph);
+  }
+  for (const nd of nodes){
+    nd.x += (nd.tx-nd.x)*0.16; nd.y += (nd.ty-nd.y)*0.16;
+    gx.beginPath(); gx.moveTo(cx,cy); gx.lineTo(nd.x,nd.y);
+    gx.strokeStyle='rgba(141,134,163,0.25)';
+    gx.lineWidth = 1 + nd.w*0.22;
+    if (queued && queued.chord.key===nd.key){ gx.strokeStyle='#F2C14E'; gx.setLineDash([5,5]); }
+    gx.stroke(); gx.setLineDash([]);
+  }
+  gx.textAlign='center';
+  for (const nd of nodes){
+    const c = nodeColor(nd.chord);
+    gx.beginPath(); gx.arc(nd.x,nd.y,nd.r,0,6.2832);
+    gx.fillStyle='#15121D'; gx.fill();
+    gx.lineWidth=2; gx.strokeStyle=c;
+    if (nd.chord.func==null) gx.setLineDash([4,3]);
+    gx.stroke(); gx.setLineDash([]);
+    if (queued && queued.chord.key===nd.key){
+      gx.beginPath(); gx.arc(nd.x,nd.y,nd.r+5,0,6.2832);
+      gx.strokeStyle='#F2C14E'; gx.lineWidth=1.5; gx.stroke();
+    }
+    gx.fillStyle='#EDE8F6'; gx.font='600 14px Manrope, sans-serif';
+    gx.fillText(nd.chord.label, nd.x, nd.y+1);
+    gx.fillStyle='rgba(141,134,163,0.95)'; gx.font='10px "JetBrains Mono", monospace';
+    gx.fillText(nd.chord.roman, nd.x, nd.y+14);
+  }
+  const cr = 34*pulse;
+  gx.beginPath(); gx.arc(cx,cy,cr,0,6.2832);
+  gx.fillStyle = nodeColor(current); gx.fill();
+  gx.fillStyle='#16121F'; gx.font='600 17px Manrope, sans-serif';
+  gx.fillText(current.label, cx, cy+1);
+  gx.font='10px "JetBrains Mono", monospace';
+  gx.fillText(current.roman, cx, cy+15);
+}
+gcv.addEventListener('pointerdown', e=>{
+  const r=gcv.getBoundingClientRect();
+  const px=e.clientX-r.left, py=e.clientY-r.top;
+  for (const nd of nodes){
+    const dx=nd.x-px, dy=nd.y-py;
+    if (dx*dx+dy*dy < (nd.r+8)*(nd.r+8)){ pickChord(nd.chord,'tap'); return; }
+  }
+});
+function pickChord(ch, src){
+  if (playing){ queued = {chord:ch, src}; updateQueueUI(); }
+  else {
+    if (src!=='mic'){ ensureAudio(); strum(ch, AC.currentTime+0.02, 1.4, 1); }
+    setCurrent(ch);
+  }
+}
+function updateQueueUI(){
+  const el=document.getElementById('queueInfo');
+  if (queued){
+    const tag = queued.src==='mic' ? ' · по слуху' : '';
+    el.textContent = '→ '+queued.chord.label+' на следующем такте'+tag;
+  } else el.textContent='';
+  drawPiano();
+}
+
+/* ================= ПИАНИНО ================= */
+const pcv = document.getElementById('piano');
+const px2 = pcv.getContext('2d');
+const PLOW=48, PHIGH=83; // C3..B5
+const WHITE=[0,2,4,5,7,9,11], BLACK=[1,3,6,8,10];
+
+function drawPiano(){
+  const dp = Math.min(window.devicePixelRatio||1,2);
+  const r = pcv.getBoundingClientRect();
+  const W=r.width, H=r.height||118;
+  pcv.width=Math.round(W*dp); pcv.height=Math.round(H*dp);
+  px2.setTransform(dp,0,0,dp,0,0);
+  px2.clearRect(0,0,W,H);
+  const topPad=12, kbH=H-topPad;
+  // белые клавиши
+  const whites=[];
+  for (let m=PLOW;m<=PHIGH;m++) if (WHITE.indexOf(m%12)>=0) whites.push(m);
+  const kw = W/whites.length;
+  const curSet = new Set(curVoice);
+  const qSet = new Set(queued? chordVoicing(queued.chord) : []);
+  const curCol = nodeColor(current);
+  whites.forEach((m,i)=>{
+    const x=i*kw;
+    px2.fillStyle = curSet.has(m) ? curCol : '#EDE8F6';
+    px2.fillRect(x+0.5, topPad, kw-1, kbH);
+    px2.strokeStyle='#1B1824'; px2.strokeRect(x+0.5, topPad, kw-1, kbH);
+    if (curSet.has(m)){
+      px2.fillStyle='#16121F';
+      px2.font='600 10px "JetBrains Mono", monospace';
+      px2.textAlign='center';
+      px2.fillText(NOTE[m%12], x+kw/2, topPad+kbH-7);
+    }
+    if (qSet.has(m)){
+      px2.beginPath(); px2.arc(x+kw/2, topPad-6, 4, 0, 6.2832);
+      px2.fillStyle='#F2C14E'; px2.fill();
+    }
+  });
+  // чёрные клавиши
+  whites.forEach((m,i)=>{
+    const bm=m+1;
+    if (bm>PHIGH || BLACK.indexOf(bm%12)<0) return;
+    const bw=kw*0.62, x=(i+1)*kw-bw/2;
+    px2.fillStyle = curSet.has(bm) ? curCol : '#23202E';
+    px2.fillRect(x, topPad, bw, kbH*0.6);
+    px2.strokeStyle='#131119'; px2.strokeRect(x, topPad, bw, kbH*0.6);
+    if (qSet.has(bm)){
+      px2.beginPath(); px2.arc(x+bw/2, topPad-6, 4, 0, 6.2832);
+      px2.fillStyle='#F2C14E'; px2.fill();
+    }
+  });
+}
+
+/* ================= РЕЖИМЫ И МИКРОФОН ================= */
+let micOn=false, micStream=null, analyser=null, micTimer=null, micFreq=null;
+let micVotes={last:null,count:0};
+const MODE_HINT = {
+  tap:'вы ведёте гармонию: касайтесь аккордов в графе',
+  auto:()=> 'ведёт шаблон: '+progression.map(d=>ROMAN[cfg.mode][d]).join(' – '),
+  wander:'граф блуждает сам по весам переходов — бесконечный фон; касание перебивает',
+  listen:'играйте аккорды тональности — я перейду следом на границе такта'
+};
+function setMode(m){
+  if (cfg.ctrl==='listen' && m!=='listen') stopMic();
+  cfg.ctrl = m;
+  document.querySelectorAll('.chip.mode').forEach(c=>c.classList.toggle('active', c.dataset.m===m));
+  const st = document.getElementById('modeStatus');
+  st.className='modestatus';
+  st.textContent = typeof MODE_HINT[m]==='function' ? MODE_HINT[m]() : MODE_HINT[m];
+  document.getElementById('micLine').style.display = m==='listen' ? 'flex' : 'none';
+  if (m==='listen') startMic();
+}
+async function startMic(){
+  const st=document.getElementById('modeStatus');
+  try{
+    ensureAudio();
+    micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false}});
+    const src = AC.createMediaStreamSource(micStream);
+    analyser = AC.createAnalyser();
+    analyser.fftSize=8192; analyser.smoothingTimeConstant=0.8;
+    src.connect(analyser);
+    micFreq = new Float32Array(analyser.frequencyBinCount);
+    micOn = true;
+    micTimer = setInterval(micAnalyze, 120);
+    st.innerHTML = 'слушаю… распознанный аккорд — слева внизу';
+  }catch(err){
+    st.className='modestatus err';
+    st.textContent='Микрофон недоступен: '+err.message+'. В предпросмотре Claude доступ запрещён — откройте файл в браузере.';
+    setTimeout(()=>setMode('tap'), 50);
+  }
+}
+function stopMic(){
+  micOn=false; clearInterval(micTimer);
+  if (micStream) micStream.getTracks().forEach(t=>t.stop());
+  micStream=null;
+  document.getElementById('micChord').textContent='—';
+  document.getElementById('micLevel').style.width='0%';
+}
+function micAnalyze(){
+  if (!micOn) return;
+  analyser.getFloatFrequencyData(micFreq);
+  const sr=AC.sampleRate, N=analyser.fftSize;
+  const chroma=new Float32Array(12);
+  let energy=0;
+  for (let m=40;m<=88;m++){
+    const f=midiF(m), bin=Math.round(f*N/sr);
+    if (bin<=0||bin>=micFreq.length) continue;
+    const amp=Math.pow(10, micFreq[bin]/20);
+    chroma[m%12]+=amp; energy+=amp;
+  }
+  document.getElementById('micLevel').style.width = Math.min(100, energy*2600).toFixed(0)+'%';
+  const mx=Math.max.apply(null, chroma);
+  if (energy<0.012 || mx<=0){ micVotes.count=0; return; }
+  for (let i=0;i<12;i++) chroma[i]/=mx;
+  let best=null, bestScore=-1;
+  for (const ch of diatonic){
+    let inS=0, outS=0;
+    for (let pc=0;pc<12;pc++){
+      if (ch.pcs.indexOf(pc)>=0) inS+=chroma[pc]; else outS+=chroma[pc];
+    }
+    const score = inS/ch.pcs.length - 0.55*outS/(12-ch.pcs.length);
+    if (score>bestScore){ bestScore=score; best=ch; }
+  }
+  if (bestScore<0.18){ micVotes.count=0; return; }
+  if (micVotes.last===best.key) micVotes.count++;
+  else { micVotes.last=best.key; micVotes.count=1; }
+  if (micVotes.count>=3){
+    document.getElementById('micChord').textContent = best.label;
+    if (best.key!==current.key && (!queued || queued.chord.key!==best.key))
+      pickChord(best, 'mic');
+  }
+}
+
+/* ================= GEMINI ================= */
+const AI_MODELS=['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
+async function aiGenerate(){
+  const st=document.getElementById('aiStatus');
+  const key=document.getElementById('apiKey').value.trim();
+  const mood=document.getElementById('aiMood').value.trim()||'светлое спокойное настроение';
+  if (!key){ st.className='status err'; st.textContent='Вставьте ключ API (ссылка выше).'; return; }
+  st.className='status'; st.textContent='Генерирую…';
+  document.getElementById('bAI').disabled=true;
+  const prompt =
+    'Ты генератор шаблонов для аккордового аранжировщика. Верни ТОЛЬКО валидный JSON без markdown:\n'+
+    '{"name":"короткое название","root":"одна из C C# D D# E F F# G G# A A# B","mode":"major или minor",'+
+    '"bpm":число 60-160,"variability":0-100,"style":"ballad|lofi|bossa|rock|ambient","energy":0-100,'+
+    '"progression":[4-8 ступеней]}\n'+
+    'Ступени СТРОГО из списка: major: I ii iii IV V vi vii° ; minor: i ii° III iv V VI VII.\n'+
+    'Настроение: '+mood;
+  let lastErr='';
+  for (const model of AI_MODELS){
+    try{
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(key),{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+      });
+      if (!r.ok){ lastErr='HTTP '+r.status; continue; }
+      const data = await r.json();
+      const txt = (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+      const tpl = JSON.parse(txt.replace(/```json|```/g,'').trim());
+      applyTemplate({
+        name: tpl.name||'AI', root: tpl.root||'C',
+        mode: tpl.mode==='minor'?'minor':'major',
+        bpm: Math.max(50,Math.min(180, tpl.bpm|0 || 100)),
+        vari: Math.max(0,Math.min(100, tpl.variability|0)),
+        style: STYLES[tpl.style]? tpl.style : 'ballad',
+        energy: Math.max(0,Math.min(100, tpl.energy|0 || 50)),
+        prog: Array.isArray(tpl.progression)? tpl.progression : ['I','V','vi','IV']
+      });
+      st.className='status ok';
+      st.textContent='Готово: «'+(tpl.name||'AI')+'» · '+model;
+      document.getElementById('bAI').disabled=false;
+      return;
+    }catch(err){ lastErr=err.message; }
+  }
+  st.className='status err';
+  st.textContent='Не получилось: '+lastErr+'. Если ошибка сети — в предпросмотре Claude внешние запросы заблокированы; откройте файл в браузере.';
+  document.getElementById('bAI').disabled=false;
+}
+
+/* ================= ШАБЛОНЫ / НАСТРОЙКИ ================= */
+const $ = id=>document.getElementById(id);
+function romanToDeg(rm, mode){
+  const norm = s=>String(s).toLowerCase().replace('°','');
+  return ROMAN[mode].findIndex(r=>norm(r)===norm(rm));
+}
+function applyStyle(styleId){
+  cfg.style = styleId;
+  cfg.sound = STYLES[styleId].sound;
+  $('selSound').value = cfg.sound;
+  document.querySelectorAll('#styleChips .chip').forEach(c=>
+    c.classList.toggle('active', c.dataset.s===styleId));
+}
+function applyTemplate(t){
+  cfg.bpm=t.bpm; cfg.mode=t.mode;
+  cfg.rootPc = NOTE.indexOf(t.root)>=0 ? NOTE.indexOf(t.root) : 0;
+  cfg.vari=t.vari/100; cfg.energy=t.energy/100;
+  diatonic = buildDiatonic(cfg.rootPc, cfg.mode);
+  progression = t.prog.map(rm=>{const d=romanToDeg(rm,cfg.mode); return d>=0?d:0;});
+  progPtr=1; queued=null;
+  applyStyle(t.style);
+  setCurrent(diatonic[progression[0]||0]);
+  $('rBpm').value=cfg.bpm; $('vBpm').textContent=cfg.bpm+' bpm'; $('bpmShow').textContent=cfg.bpm;
+  $('rVar').value=Math.round(cfg.vari*100); $('vVar').textContent=Math.round(cfg.vari*100)+'%';
+  $('rEnergy').value=Math.round(cfg.energy*100); $('vEnergy').textContent=Math.round(cfg.energy*100)+'%';
+  $('selRoot').value=cfg.rootPc; $('selMode').value=cfg.mode;
+  updateQueueUI();
+  if (cfg.ctrl==='auto') setMode('auto'); // обновить подпись прогрессии
+}
+function rebuildKey(){
+  diatonic = buildDiatonic(cfg.rootPc, cfg.mode);
+  queued=null; progPtr=0;
+  setCurrent(diatonic[0]);
+  updateQueueUI();
+  if (cfg.ctrl==='auto') setMode('auto');
+}
+
+/* ================= ПРИВЯЗКА UI ================= */
+NOTE.forEach((n,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=n; $('selRoot').appendChild(o); });
+
+const styleChips = $('styleChips');
+Object.keys(STYLES).forEach(sid=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.dataset.s=sid; b.textContent=STYLES[sid].name;
+  b.addEventListener('click', ()=>applyStyle(sid));
+  styleChips.appendChild(b);
+});
+const tplChips = $('tplChips');
+TEMPLATES.forEach((t,i)=>{
+  const b=document.createElement('button');
+  b.className='chip'+(i===1?' active':'');
+  b.textContent=t.name;
+  b.addEventListener('click', ()=>{
+    tplChips.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    b.classList.add('active');
+    applyTemplate(t);
+  });
+  tplChips.appendChild(b);
+});
+document.querySelectorAll('.chip.mode').forEach(c=>
+  c.addEventListener('click', ()=>setMode(c.dataset.m)));
+
+$('bPlay').addEventListener('click', togglePlay);
+$('rBpm').addEventListener('input', e=>{ cfg.bpm=+e.target.value; $('vBpm').textContent=cfg.bpm+' bpm'; $('bpmShow').textContent=cfg.bpm; });
+$('rEnergy').addEventListener('input', e=>{ cfg.energy=+e.target.value/100; $('vEnergy').textContent=e.target.value+'%'; });
+$('rVar').addEventListener('input', e=>{ cfg.vari=+e.target.value/100; $('vVar').textContent=e.target.value+'%'; regenSuggestions(); });
+$('selRoot').addEventListener('change', e=>{ cfg.rootPc=+e.target.value; rebuildKey(); });
+$('selMode').addEventListener('change', e=>{ cfg.mode=e.target.value; rebuildKey(); });
+$('selSound').addEventListener('change', e=>{ cfg.sound=e.target.value; });
+$('bAI').addEventListener('click', aiGenerate);
+
+/* ================= ЦИКЛ ВИЗУАЛА ================= */
+const dots = document.querySelectorAll('.beats i');
+function raf(){
+  if (playing && AC){
+    while (beatEvents.length && beatEvents[0].t <= AC.currentTime){
+      const ev = beatEvents.shift();
+      lastBeatT = ev.t;
+      dots.forEach((d,i)=>d.classList.toggle('on', i===ev.beat));
+    }
+  }
+  drawGraph();
+  requestAnimationFrame(raf);
+}
+window.addEventListener('resize', ()=>{ gResize(); drawPiano(); });
+
+applyTemplate(TEMPLATES[1]);
+setMode('auto');
+gResize();
+drawPiano();
+raf();
+})();
+</script>
+</body>
+</html>
