@@ -129,6 +129,16 @@
         <div class="micchord" id="micChord">—</div>
         <div class="level"><i id="micLevel"></i></div>
       </div>
+      <div id="micSettings" style="display:none;margin-top:8px">
+        <div style="display:flex;gap:8px">
+          <select id="selMicDevice" style="flex:1;font-size:12px;padding:5px 8px"></select>
+          <select id="selMicChannel" style="width:72px;font-size:12px;padding:5px 8px">
+            <option value="mix"   data-i18n="mic.ch.mix">Микс</option>
+            <option value="left"  data-i18n="mic.ch.left">Лево</option>
+            <option value="right" data-i18n="mic.ch.right">Право</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -288,6 +298,10 @@ const TRANSLATIONS = {
     'queue.mic':         ' · по слуху',
     'mic.listening':     'слушаю… распознанный аккорд — слева внизу',
     'mic.error':         'Микрофон недоступен: {msg}. В предпросмотре Claude доступ запрещён — откройте файл в браузере.',
+    'mic.ch.mix':        'Микс',
+    'mic.ch.left':       'Лево',
+    'mic.ch.right':      'Право',
+    'mic.input.fallback':'Вход',
     'ai.generating':     'Генерирую…',
     'ai.nokey':          'Вставьте ключ API (ссылка выше).',
     'ai.done':           'Готово: «{name}» · {model}',
@@ -345,6 +359,10 @@ const TRANSLATIONS = {
     'queue.mic':         ' · by ear',
     'mic.listening':     'listening… detected chord shown bottom-left',
     'mic.error':         'Mic unavailable: {msg}. In Claude preview mic access is blocked — open the file in a browser.',
+    'mic.ch.mix':        'Mix',
+    'mic.ch.left':       'Left',
+    'mic.ch.right':      'Right',
+    'mic.input.fallback':'Input',
     'ai.generating':     'Generating…',
     'ai.nokey':          'Paste your API key (link above).',
     'ai.done':           'Done: "{name}" · {model}',
@@ -828,26 +846,62 @@ function setMode(m){
   st.className='modestatus';
   st.textContent = getModeHint(m);
   document.getElementById('micLine').style.display = m==='listen' ? 'flex' : 'none';
+  document.getElementById('micSettings').style.display = m==='listen' ? '' : 'none';
   if (m==='listen') startMic();
 }
 async function startMic(){
   const st=document.getElementById('modeStatus');
   try{
     ensureAudio();
-    micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false}});
+    const deviceId = $('selMicDevice').value;
+    const audioConstraints = {echoCancellation:false, noiseSuppression:false};
+    if (deviceId) audioConstraints.deviceId = {exact: deviceId};
+    micStream = await navigator.mediaDevices.getUserMedia({audio: audioConstraints});
     const src = AC.createMediaStreamSource(micStream);
     analyser = AC.createAnalyser();
     analyser.fftSize=8192; analyser.smoothingTimeConstant=0.8;
-    src.connect(analyser);
+    const ch = $('selMicChannel').value;
+    if (ch === 'left' || ch === 'right'){
+      const splitter = AC.createChannelSplitter(2);
+      src.connect(splitter);
+      splitter.connect(analyser, ch === 'left' ? 0 : 1);
+    } else {
+      src.connect(analyser);
+    }
     micFreq = new Float32Array(analyser.frequencyBinCount);
     micOn = true;
     micTimer = setInterval(micAnalyze, 120);
     st.textContent = t('mic.listening');
+    await populateMicDevices();
   }catch(err){
     st.className='modestatus err';
     st.textContent = t('mic.error', {msg: err.message});
     setTimeout(()=>setMode('tap'), 50);
   }
+}
+async function populateMicDevices(){
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const inputs = devices.filter(d => d.kind === 'audioinput');
+  const sel = $('selMicDevice');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  inputs.forEach((d, i) => {
+    const o = document.createElement('option');
+    o.value = d.deviceId;
+    o.textContent = d.label || (t('mic.input.fallback') + ' ' + (i + 1));
+    sel.appendChild(o);
+  });
+  if (prev && sel.querySelector('option[value="' + prev + '"]')){
+    sel.value = prev;
+  } else if (micStream){
+    const track = micStream.getAudioTracks()[0];
+    const activeId = track && track.getSettings().deviceId;
+    if (activeId) sel.value = activeId;
+  }
+}
+async function restartMic(){
+  stopMic();
+  await startMic();
 }
 function stopMic(){
   micOn=false; clearInterval(micTimer);
@@ -1007,6 +1061,8 @@ TEMPLATES.forEach((tpl,i)=>{
 document.querySelectorAll('.chip.mode').forEach(c=>
   c.addEventListener('click', ()=>setMode(c.dataset.m)));
 
+$('selMicDevice').addEventListener('change', () => { if (micOn) restartMic(); });
+$('selMicChannel').addEventListener('change', () => { if (micOn) restartMic(); });
 $('bPlay').addEventListener('click', togglePlay);
 $('rBpm').addEventListener('input', e=>{ cfg.bpm=+e.target.value; $('vBpm').textContent=cfg.bpm+' bpm'; $('bpmShow').textContent=cfg.bpm; });
 $('rEnergy').addEventListener('input', e=>{ cfg.energy=+e.target.value/100; $('vEnergy').textContent=e.target.value+'%'; });
